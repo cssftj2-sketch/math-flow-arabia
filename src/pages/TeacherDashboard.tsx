@@ -1,10 +1,15 @@
+import { useState, useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import StatCard from "@/components/StatCard";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import {
   LayoutDashboard, BookOpen, FileEdit, Users, MessageSquare,
-  CheckCircle2, Clock, GraduationCap, BarChart3, Plus
+  CheckCircle2, Clock, GraduationCap, BarChart3, Plus, Upload,
+  Trash2, Eye, Send, X
 } from "lucide-react";
+import { toast } from "sonner";
 
 const navItems = [
   { path: "/teacher", label: "لوحة التحكم", icon: LayoutDashboard },
@@ -15,113 +20,419 @@ const navItems = [
   { path: "/teacher/feedback", label: "التغذية الراجعة", icon: MessageSquare },
 ];
 
-const TeacherHome = () => (
-  <div className="space-y-8">
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      <StatCard title="المناهج" value="٤" icon={<BookOpen className="w-5 h-5 text-primary-foreground" />} colorClass="bg-secondary" />
-      <StatCard title="الطلاب" value="١٢٨" icon={<GraduationCap className="w-5 h-5 text-primary-foreground" />} colorClass="bg-primary" />
-      <StatCard title="محتوى منشور" value="٨٦" subtitle="درس" icon={<CheckCircle2 className="w-5 h-5 text-primary-foreground" />} colorClass="bg-success" />
-      <StatCard title="بانتظار المراجعة" value="٥" icon={<Clock className="w-5 h-5 text-primary-foreground" />} colorClass="bg-warning" />
-    </div>
+// ─── Teacher Home ───
+const TeacherHome = () => {
+  const { user } = useAuth();
+  const [stats, setStats] = useState({ curricula: 0, lessons: 0, published: 0, draft: 0 });
+  const [recentLessons, setRecentLessons] = useState<any[]>([]);
 
-    <div className="grid lg:grid-cols-2 gap-6">
-      <div className="bg-card rounded-2xl border border-border p-6">
-        <h2 className="font-bold mb-4">آخر النشاطات</h2>
-        <div className="space-y-3">
-          {[
-            { text: "أحمد أكمل اختبار الجبر بنتيجة 90%", time: "منذ ٣ دقائق" },
-            { text: "سارة طلبت مساعدة في الهندسة الفراغية", time: "منذ ١٥ دقيقة" },
-            { text: "تم نشر درس المعادلات التربيعية بنجاح", time: "منذ ساعة" },
-            { text: "محمد حقق شارة سلسلة 7 أيام", time: "منذ ساعتين" },
-          ].map((a, i) => (
-            <div key={i} className="flex justify-between items-start py-2 border-b border-border last:border-0">
-              <p className="text-sm">{a.text}</p>
-              <span className="text-xs text-muted-foreground whitespace-nowrap mr-4">{a.time}</span>
-            </div>
-          ))}
-        </div>
+  useEffect(() => {
+    if (!user) return;
+    const load = async () => {
+      const [{ count: cCount }, { count: lCount }, { count: pubCount }, { data: recent }] = await Promise.all([
+        supabase.from('curricula').select('*', { count: 'exact', head: true }).eq('teacher_id', user.id),
+        supabase.from('lessons').select('*', { count: 'exact', head: true }),
+        supabase.from('lessons').select('*', { count: 'exact', head: true }).eq('is_published', true),
+        supabase.from('lessons').select('title, created_at, is_published, curricula(title)').order('created_at', { ascending: false }).limit(5),
+      ]);
+      setStats({ curricula: cCount || 0, lessons: lCount || 0, published: pubCount || 0, draft: (lCount || 0) - (pubCount || 0) });
+      setRecentLessons(recent || []);
+    };
+    load();
+  }, [user]);
+
+  return (
+    <div className="space-y-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard title="المناهج" value={String(stats.curricula)} icon={<BookOpen className="w-5 h-5 text-primary-foreground" />} colorClass="bg-secondary" />
+        <StatCard title="الدروس" value={String(stats.lessons)} icon={<GraduationCap className="w-5 h-5 text-primary-foreground" />} colorClass="bg-primary" />
+        <StatCard title="منشور" value={String(stats.published)} icon={<CheckCircle2 className="w-5 h-5 text-primary-foreground" />} colorClass="bg-success" />
+        <StatCard title="مسودة" value={String(stats.draft)} icon={<Clock className="w-5 h-5 text-primary-foreground" />} colorClass="bg-warning" />
       </div>
 
       <div className="bg-card rounded-2xl border border-border p-6">
-        <h2 className="font-bold mb-4">أداء الفصول</h2>
-        <div className="space-y-4">
-          {[
-            { name: "الصف التاسع - أ", students: 32, avg: 78 },
-            { name: "الصف التاسع - ب", students: 28, avg: 72 },
-            { name: "الصف العاشر - أ", students: 35, avg: 85 },
-            { name: "الصف العاشر - ب", students: 33, avg: 68 },
-          ].map((c) => (
-            <div key={c.name} className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-sm">{c.name}</p>
-                <p className="text-xs text-muted-foreground">{c.students} طالب</p>
+        <h2 className="font-bold mb-4">آخر الدروس</h2>
+        {recentLessons.length === 0 ? (
+          <p className="text-muted-foreground text-sm">لا توجد دروس بعد. ابدأ بإنشاء منهج جديد!</p>
+        ) : (
+          <div className="space-y-3">
+            {recentLessons.map((l: any, i: number) => (
+              <div key={i} className="flex justify-between items-center py-2 border-b border-border last:border-0">
+                <div>
+                  <p className="text-sm font-medium">{l.title}</p>
+                  <p className="text-xs text-muted-foreground">{(l.curricula as any)?.title}</p>
+                </div>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${l.is_published ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'}`}>
+                  {l.is_published ? 'منشور' : 'مسودة'}
+                </span>
               </div>
-              <div className="text-left">
-                <span className={`text-sm font-bold ${c.avg >= 75 ? 'text-success' : 'text-warning'}`}>{c.avg}%</span>
-                <p className="text-xs text-muted-foreground">المعدل</p>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
-  </div>
-);
+  );
+};
 
-const CurriculumBuilder = () => (
-  <div className="space-y-6">
-    <div className="flex items-center justify-between">
-      <p className="text-muted-foreground">خطط المواضيع والأهداف التعليمية</p>
-      <button className="bg-gradient-hero text-primary-foreground px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2">
-        <Plus className="w-4 h-4" /> منهج جديد
-      </button>
-    </div>
-    <div className="space-y-4">
-      {["الجبر المتقدم", "الهندسة الفراغية", "الإحصاء والاحتمالات", "حساب المثلثات"].map((name, i) => (
-        <div key={name} className="bg-card rounded-2xl border border-border p-5 hover-lift">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center text-secondary-foreground font-bold">{i + 1}</div>
-              <div>
-                <h3 className="font-bold">{name}</h3>
-                <p className="text-xs text-muted-foreground">{8 + i * 2} دروس · {3 + i} اختبارات</p>
-              </div>
-            </div>
-            <span className={`text-xs px-3 py-1 rounded-full ${i < 2 ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'}`}>
-              {i < 2 ? 'منشور' : 'مسودة'}
-            </span>
+// ─── Curriculum Builder ───
+const CurriculumBuilder = () => {
+  const { user } = useAuth();
+  const [curricula, setCurricula] = useState<any[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [gradeLevel, setGradeLevel] = useState('');
+
+  const load = async () => {
+    if (!user) return;
+    const { data } = await supabase.from('curricula').select('*, lessons(count)').eq('teacher_id', user.id).order('created_at', { ascending: false });
+    setCurricula(data || []);
+  };
+
+  useEffect(() => { load(); }, [user]);
+
+  const handleCreate = async () => {
+    if (!user || !title.trim()) return;
+    const { error } = await supabase.from('curricula').insert({ teacher_id: user.id, title, description, grade_level: gradeLevel });
+    if (error) { toast.error('فشل في إنشاء المنهج'); return; }
+    toast.success('تم إنشاء المنهج بنجاح');
+    setShowForm(false); setTitle(''); setDescription(''); setGradeLevel('');
+    load();
+  };
+
+  const togglePublish = async (id: string, current: boolean) => {
+    await supabase.from('curricula').update({ is_published: !current }).eq('id', id);
+    load();
+  };
+
+  const deleteCurriculum = async (id: string) => {
+    await supabase.from('curricula').delete().eq('id', id);
+    toast.success('تم حذف المنهج');
+    load();
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <p className="text-muted-foreground">خطط المواضيع والأهداف التعليمية</p>
+        <button onClick={() => setShowForm(!showForm)} className="bg-gradient-hero text-primary-foreground px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2">
+          <Plus className="w-4 h-4" /> منهج جديد
+        </button>
+      </div>
+
+      {showForm && (
+        <div className="bg-card rounded-2xl border border-border p-6 space-y-4">
+          <input value={title} onChange={e => setTitle(e.target.value)} placeholder="عنوان المنهج" className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground" />
+          <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="وصف المنهج" className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground" rows={3} />
+          <input value={gradeLevel} onChange={e => setGradeLevel(e.target.value)} placeholder="المستوى الدراسي (مثال: الصف التاسع)" className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground" />
+          <div className="flex gap-3">
+            <button onClick={handleCreate} className="bg-gradient-hero text-primary-foreground px-6 py-2 rounded-xl text-sm font-medium">إنشاء</button>
+            <button onClick={() => setShowForm(false)} className="text-muted-foreground text-sm">إلغاء</button>
           </div>
         </div>
-      ))}
-    </div>
-  </div>
-);
+      )}
 
-const ContentAuthoring = () => (
-  <div className="space-y-6">
-    <p className="text-muted-foreground">أنشئ الدروس والتمارين والبطاقات التعليمية</p>
-    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      {[
-        { icon: "📹", title: "درس فيديو", desc: "أنشئ درساً مرئياً" },
-        { icon: "📝", title: "بطاقات تعليمية", desc: "صيغ ومفاهيم" },
-        { icon: "❓", title: "اختبار QCM", desc: "أسئلة متعددة الخيارات" },
-        { icon: "✏️", title: "تمرين عملي", desc: "حل خطوة بخطوة" },
-      ].map((t) => (
-        <button key={t.title} className="bg-card rounded-2xl border border-border p-6 text-center hover-lift">
-          <span className="text-4xl block mb-3">{t.icon}</span>
-          <p className="font-bold text-sm">{t.title}</p>
-          <p className="text-xs text-muted-foreground mt-1">{t.desc}</p>
+      <div className="space-y-4">
+        {curricula.length === 0 && <p className="text-muted-foreground text-center py-8">لا توجد مناهج بعد</p>}
+        {curricula.map((c: any, i: number) => (
+          <div key={c.id} className="bg-card rounded-2xl border border-border p-5 hover-lift">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center text-secondary-foreground font-bold">{i + 1}</div>
+                <div>
+                  <h3 className="font-bold">{c.title}</h3>
+                  <p className="text-xs text-muted-foreground">{c.grade_level || 'بدون مستوى'} · {c.lessons?.[0]?.count || 0} دروس</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={() => togglePublish(c.id, c.is_published)} className={`text-xs px-3 py-1 rounded-full ${c.is_published ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'}`}>
+                  {c.is_published ? 'منشور' : 'مسودة'}
+                </button>
+                <button onClick={() => deleteCurriculum(c.id)} className="text-destructive/60 hover:text-destructive p-1"><Trash2 className="w-4 h-4" /></button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ─── Content Authoring with File Upload ───
+const ContentAuthoring = () => {
+  const { user } = useAuth();
+  const [curricula, setCurricula] = useState<any[]>([]);
+  const [lessons, setLessons] = useState<any[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [lessonTitle, setLessonTitle] = useState('');
+  const [lessonContent, setLessonContent] = useState('');
+  const [lessonType, setLessonType] = useState('video');
+  const [selectedCurriculum, setSelectedCurriculum] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [uploadedUrl, setUploadedUrl] = useState('');
+
+  const loadData = async () => {
+    if (!user) return;
+    const [{ data: c }, { data: l }] = await Promise.all([
+      supabase.from('curricula').select('id, title').eq('teacher_id', user.id),
+      supabase.from('lessons').select('*, curricula(title)').order('created_at', { ascending: false }),
+    ]);
+    setCurricula(c || []);
+    setLessons(l || []);
+    if (c && c.length > 0 && !selectedCurriculum) setSelectedCurriculum(c[0].id);
+  };
+
+  useEffect(() => { loadData(); }, [user]);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    setUploading(true);
+    const path = `${user.id}/${Date.now()}_${file.name}`;
+    const { error, data } = await supabase.storage.from('educational-materials').upload(path, file);
+    if (error) { toast.error('فشل في رفع الملف'); setUploading(false); return; }
+    const { data: urlData } = supabase.storage.from('educational-materials').getPublicUrl(data.path);
+    setUploadedUrl(urlData.publicUrl);
+    toast.success('تم رفع الملف بنجاح');
+    setUploading(false);
+  };
+
+  const handleCreateLesson = async () => {
+    if (!selectedCurriculum || !lessonTitle.trim()) return;
+    const { error } = await supabase.from('lessons').insert({
+      curriculum_id: selectedCurriculum,
+      title: lessonTitle,
+      content: lessonContent,
+      lesson_type: lessonType,
+      video_url: uploadedUrl || null,
+    });
+    if (error) { toast.error('فشل في إنشاء الدرس'); return; }
+    toast.success('تم إنشاء الدرس بنجاح');
+    setShowForm(false); setLessonTitle(''); setLessonContent(''); setUploadedUrl('');
+    loadData();
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <p className="text-muted-foreground">أنشئ الدروس والتمارين والبطاقات التعليمية</p>
+        <button onClick={() => setShowForm(!showForm)} className="bg-gradient-hero text-primary-foreground px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2">
+          <Plus className="w-4 h-4" /> درس جديد
         </button>
-      ))}
-    </div>
-  </div>
-);
+      </div>
 
-const PlaceholderPage = ({ title }: { title: string }) => (
-  <div className="bg-card rounded-2xl border border-border p-8 text-center">
-    <p className="text-muted-foreground">{title} — قيد التطوير</p>
-  </div>
-);
+      {showForm && (
+        <div className="bg-card rounded-2xl border border-border p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-2">المنهج</label>
+            <select value={selectedCurriculum} onChange={e => setSelectedCurriculum(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground">
+              {curricula.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+            </select>
+          </div>
+          <input value={lessonTitle} onChange={e => setLessonTitle(e.target.value)} placeholder="عنوان الدرس" className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground" />
+          <textarea value={lessonContent} onChange={e => setLessonContent(e.target.value)} placeholder="محتوى الدرس" className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground" rows={4} />
+          <div>
+            <label className="block text-sm font-medium mb-2">نوع الدرس</label>
+            <div className="flex gap-3">
+              {[{ v: 'video', l: '📹 فيديو' }, { v: 'text', l: '📝 نصي' }, { v: 'exercise', l: '✏️ تمرين' }].map(t => (
+                <button key={t.v} type="button" onClick={() => setLessonType(t.v)} className={`px-4 py-2 rounded-xl border-2 text-sm ${lessonType === t.v ? 'border-primary bg-primary/5' : 'border-border'}`}>{t.l}</button>
+              ))}
+            </div>
+          </div>
+
+          {/* File Upload */}
+          <div className="border-2 border-dashed border-border rounded-2xl p-6 text-center">
+            <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
+            <p className="text-sm font-medium mb-2">ارفع ملفاً (فيديو، PDF، صورة)</p>
+            <input type="file" onChange={handleFileUpload} className="hidden" id="file-upload" accept="video/*,application/pdf,image/*" />
+            <label htmlFor="file-upload" className="cursor-pointer text-primary text-sm font-medium hover:underline">
+              {uploading ? 'جارٍ الرفع...' : 'اختر ملفاً'}
+            </label>
+            {uploadedUrl && (
+              <div className="mt-3 flex items-center justify-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-success" />
+                <span className="text-xs text-success">تم رفع الملف بنجاح</span>
+                <button onClick={() => setUploadedUrl('')} className="text-destructive/60 hover:text-destructive"><X className="w-3 h-3" /></button>
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-3">
+            <button onClick={handleCreateLesson} className="bg-gradient-hero text-primary-foreground px-6 py-2 rounded-xl text-sm font-medium">إنشاء الدرس</button>
+            <button onClick={() => setShowForm(false)} className="text-muted-foreground text-sm">إلغاء</button>
+          </div>
+        </div>
+      )}
+
+      {/* Lessons list */}
+      <div className="space-y-3">
+        {lessons.length === 0 && <p className="text-muted-foreground text-center py-8">لا توجد دروس بعد. أنشئ منهجاً أولاً ثم أضف الدروس</p>}
+        {lessons.map((l: any) => (
+          <div key={l.id} className="bg-card rounded-2xl border border-border p-5 hover-lift">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-sm">{l.title}</h3>
+                <p className="text-xs text-muted-foreground">{(l.curricula as any)?.title} · {l.lesson_type === 'video' ? '📹 فيديو' : l.lesson_type === 'text' ? '📝 نصي' : '✏️ تمرين'}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                {l.video_url && <a href={l.video_url} target="_blank" className="text-primary/60 hover:text-primary"><Eye className="w-4 h-4" /></a>}
+                <span className={`text-xs px-2 py-0.5 rounded-full ${l.is_published ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'}`}>
+                  {l.is_published ? 'منشور' : 'مسودة'}
+                </span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ─── Class Management ───
+const ClassManagement = () => {
+  const { user } = useAuth();
+  const [curricula, setCurricula] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase.from('curricula').select('id, title, grade_level, is_published, lessons(count)').eq('teacher_id', user.id).then(({ data }) => setCurricula(data || []));
+  }, [user]);
+
+  return (
+    <div className="space-y-6">
+      <p className="text-muted-foreground">إدارة الفصول الدراسية المرتبطة بمناهجك</p>
+      {curricula.length === 0 ? (
+        <div className="bg-card rounded-2xl border border-border p-8 text-center">
+          <p className="text-muted-foreground">لا توجد مناهج بعد. أنشئ منهجاً أولاً</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {curricula.map((c: any) => (
+            <div key={c.id} className="bg-card rounded-2xl border border-border p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="font-bold">{c.title}</h3>
+                  <p className="text-xs text-muted-foreground">{c.grade_level || 'بدون مستوى'}</p>
+                </div>
+                <span className={`text-xs px-3 py-1 rounded-full ${c.is_published ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'}`}>
+                  {c.is_published ? 'منشور' : 'مسودة'}
+                </span>
+              </div>
+              <div className="flex gap-4 text-sm">
+                <div className="bg-muted/50 rounded-xl px-4 py-3 flex-1 text-center">
+                  <p className="text-lg font-bold">{c.lessons?.[0]?.count || 0}</p>
+                  <p className="text-xs text-muted-foreground">دروس</p>
+                </div>
+                <div className="bg-muted/50 rounded-xl px-4 py-3 flex-1 text-center">
+                  <p className="text-lg font-bold">—</p>
+                  <p className="text-xs text-muted-foreground">طلاب مسجلون</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── Performance Monitor ───
+const PerformanceMonitor = () => {
+  const [progress, setProgress] = useState<any[]>([]);
+
+  useEffect(() => {
+    supabase.from('student_progress')
+      .select('status, score, completed_at, lessons(title), quizzes(title), profiles:student_id(full_name)')
+      .order('updated_at', { ascending: false })
+      .limit(20)
+      .then(({ data }) => setProgress(data || []));
+  }, []);
+
+  return (
+    <div className="space-y-6">
+      <p className="text-muted-foreground">تابع أداء الطلاب في المناهج والاختبارات</p>
+      {progress.length === 0 ? (
+        <div className="bg-card rounded-2xl border border-border p-8 text-center">
+          <p className="text-muted-foreground">لا توجد بيانات تقدم بعد</p>
+        </div>
+      ) : (
+        <div className="bg-card rounded-2xl border border-border overflow-hidden">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-border bg-muted/50">
+                <th className="text-right p-4 text-sm font-medium text-muted-foreground">الطالب</th>
+                <th className="text-right p-4 text-sm font-medium text-muted-foreground">المحتوى</th>
+                <th className="text-right p-4 text-sm font-medium text-muted-foreground">الحالة</th>
+                <th className="text-right p-4 text-sm font-medium text-muted-foreground">النتيجة</th>
+              </tr>
+            </thead>
+            <tbody>
+              {progress.map((p: any, i: number) => (
+                <tr key={i} className="border-b border-border last:border-0 hover:bg-muted/30">
+                  <td className="p-4 text-sm font-medium">{(p.profiles as any)?.full_name || '—'}</td>
+                  <td className="p-4 text-sm text-muted-foreground">{(p.lessons as any)?.title || (p.quizzes as any)?.title || '—'}</td>
+                  <td className="p-4">
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                      p.status === 'completed' ? 'bg-success/10 text-success' :
+                      p.status === 'in_progress' ? 'bg-info/10 text-info' :
+                      'bg-muted text-muted-foreground'
+                    }`}>{p.status === 'completed' ? 'مكتمل' : p.status === 'in_progress' ? 'جارٍ' : 'لم يبدأ'}</span>
+                  </td>
+                  <td className="p-4 text-sm font-bold">{p.score != null ? `${p.score}%` : '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── Feedback ───
+const FeedbackPage = () => {
+  const [progress, setProgress] = useState<any[]>([]);
+
+  useEffect(() => {
+    supabase.from('student_progress')
+      .select('id, status, score, student_id, profiles:student_id(full_name), lessons(title), quizzes(title)')
+      .order('updated_at', { ascending: false })
+      .limit(10)
+      .then(({ data }) => setProgress(data || []));
+  }, []);
+
+  return (
+    <div className="space-y-6">
+      <p className="text-muted-foreground">أرسل تغذية راجعة للطلاب بناءً على أدائهم</p>
+      {progress.length === 0 ? (
+        <div className="bg-card rounded-2xl border border-border p-8 text-center">
+          <p className="text-muted-foreground">لا توجد بيانات طلاب لتقديم تغذية راجعة</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {progress.map((p: any) => (
+            <div key={p.id} className="bg-card rounded-2xl border border-border p-5">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <p className="font-bold text-sm">{(p.profiles as any)?.full_name || 'طالب'}</p>
+                  <p className="text-xs text-muted-foreground">{(p.lessons as any)?.title || (p.quizzes as any)?.title}</p>
+                </div>
+                <span className={`text-sm font-bold ${(p.score || 0) >= 75 ? 'text-success' : 'text-warning'}`}>
+                  {p.score != null ? `${p.score}%` : '—'}
+                </span>
+              </div>
+              <div className="flex gap-2 mt-3">
+                <span className="bg-success/10 text-success text-xs px-3 py-1 rounded-lg cursor-pointer hover:bg-success/20">👍 أحسنت</span>
+                <span className="bg-warning/10 text-warning text-xs px-3 py-1 rounded-lg cursor-pointer hover:bg-warning/20">📝 يحتاج تحسين</span>
+                <span className="bg-info/10 text-info text-xs px-3 py-1 rounded-lg cursor-pointer hover:bg-info/20">💬 ملاحظة</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const TeacherDashboard = () => (
   <DashboardLayout title="لوحة المعلم" navItems={navItems} accentColor="bg-secondary" roleName="معلم">
@@ -129,9 +440,9 @@ const TeacherDashboard = () => (
       <Route index element={<TeacherHome />} />
       <Route path="curriculum" element={<CurriculumBuilder />} />
       <Route path="content" element={<ContentAuthoring />} />
-      <Route path="classes" element={<PlaceholderPage title="إدارة الفصول" />} />
-      <Route path="monitor" element={<PlaceholderPage title="متابعة الأداء" />} />
-      <Route path="feedback" element={<PlaceholderPage title="التغذية الراجعة" />} />
+      <Route path="classes" element={<ClassManagement />} />
+      <Route path="monitor" element={<PerformanceMonitor />} />
+      <Route path="feedback" element={<FeedbackPage />} />
       <Route path="*" element={<Navigate to="/teacher" replace />} />
     </Routes>
   </DashboardLayout>
