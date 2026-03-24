@@ -36,11 +36,11 @@ const Index = () => {
             <span className="text-xl font-bold text-foreground">رياضيات+</span>
           </div>
           <div className="flex items-center gap-4">
-            <Link to="/student" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <Link to="/auth" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               تسجيل الدخول
             </Link>
             <Link
-              to="/student"
+              to="/auth"
               className="text-sm bg-gradient-hero text-primary-foreground px-5 py-2.5 rounded-lg font-medium hover:opacity-90 transition-opacity"
             >
               ابدأ مجاناً
@@ -79,14 +79,14 @@ const Index = () => {
               transition={{ delay: 0.3, duration: 0.5 }}
             >
               <Link
-                to="/student"
+                to="/auth"
                 className="bg-gradient-hero text-primary-foreground px-8 py-4 rounded-xl text-lg font-bold hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
               >
                 ابدأ التعلم الآن
                 <ArrowLeft className="w-5 h-5" />
               </Link>
               <Link
-                to="/teacher"
+                to="/auth"
                 className="bg-card border border-border text-foreground px-8 py-4 rounded-xl text-lg font-medium hover:bg-muted transition-colors"
               >
                 أنا معلم

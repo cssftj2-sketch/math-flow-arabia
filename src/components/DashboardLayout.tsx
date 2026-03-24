@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { LucideIcon } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { LucideIcon, LogOut } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 interface NavItem {
   path: string;
@@ -18,6 +19,13 @@ interface DashboardLayoutProps {
 
 const DashboardLayout = ({ children, title, navItems, accentColor, roleName }: DashboardLayoutProps) => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { signOut, profile } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
+  };
 
   return (
     <div className="min-h-screen flex bg-background">
@@ -53,10 +61,14 @@ const DashboardLayout = ({ children, title, navItems, accentColor, roleName }: D
             );
           })}
         </nav>
-        <div className="p-4 border-t border-sidebar-border">
-          <Link to="/" className="text-sidebar-foreground/50 text-xs hover:text-sidebar-foreground transition-colors">
-            ← العودة للرئيسية
-          </Link>
+        <div className="p-4 border-t border-sidebar-border space-y-2">
+          {profile && (
+            <p className="text-sidebar-foreground/70 text-xs truncate">{profile.full_name}</p>
+          )}
+          <button onClick={handleSignOut} className="text-sidebar-foreground/50 text-xs hover:text-sidebar-foreground transition-colors flex items-center gap-1.5">
+            <LogOut className="w-3.5 h-3.5" />
+            تسجيل الخروج
+          </button>
         </div>
       </aside>
 
