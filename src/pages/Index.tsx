@@ -79,14 +79,14 @@ const Index = () => {
               transition={{ delay: 0.3, duration: 0.5 }}
             >
               <Link
-                to="/student"
+                to="/auth"
                 className="bg-gradient-hero text-primary-foreground px-8 py-4 rounded-xl text-lg font-bold hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
               >
                 ابدأ التعلم الآن
                 <ArrowLeft className="w-5 h-5" />
               </Link>
               <Link
-                to="/teacher"
+                to="/auth"
                 className="bg-card border border-border text-foreground px-8 py-4 rounded-xl text-lg font-medium hover:bg-muted transition-colors"
               >
                 أنا معلم

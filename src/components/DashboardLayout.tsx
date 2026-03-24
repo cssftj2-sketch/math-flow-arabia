@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { LucideIcon } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { LucideIcon, LogOut } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 interface NavItem {
   path: string;
