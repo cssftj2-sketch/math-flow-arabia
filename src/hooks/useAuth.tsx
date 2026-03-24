@@ -1,7 +1,9 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import type { AppRole } from '@/integrations/supabase/types';
+import type { Enums } from '@/integrations/supabase/types';
+
+type AppRole = Enums<'app_role'>;
 
 interface AuthContextType {
   session: Session | null;
@@ -15,6 +17,8 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export type { AppRole };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);

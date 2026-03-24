@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { GraduationCap, BookOpen, Users, Star, LogIn, UserPlus, ArrowRight } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
-import type { AppRole } from '@/integrations/supabase/types';
+import { useAuth, type AppRole } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
 const roleOptions: { value: AppRole; label: string; icon: typeof GraduationCap; color: string }[] = [
@@ -102,7 +101,6 @@ const Auth = () => {
           animate={{ opacity: 1, x: 0 }}
           className="w-full max-w-md"
         >
-          {/* Mobile logo */}
           <div className="lg:hidden flex items-center gap-3 mb-8 justify-center">
             <div className="w-10 h-10 rounded-xl bg-gradient-hero flex items-center justify-center">
               <span className="text-primary-foreground font-bold text-lg">ر+</span>
@@ -129,7 +127,6 @@ const Auth = () => {
                     required
                   />
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium mb-2">اختر دورك</label>
                   <div className="grid grid-cols-2 gap-3">
