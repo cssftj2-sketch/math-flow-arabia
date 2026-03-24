@@ -21,6 +21,8 @@ import {
   X,
 } from "lucide-react";
 import { toast } from "sonner";
+import MathText from "@/components/MathText";
+
 
 const navItems = [
   { path: "/teacher", label: "لوحة التحكم", icon: LayoutDashboard },
@@ -451,6 +453,13 @@ const ContentAuthoring = () => {
             className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
             rows={4}
           />
+          {/* Live Preview */}
+          {lessonContent && (
+            <div className="p-4 bg-muted/30 rounded-xl border border-border">
+              <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">معاينة المحتوى</p>
+              <MathText text={lessonContent} className="text-sm" />
+            </div>
+          )}
           <div>
             <label className="block text-sm font-medium mb-2">نوع الدرس</label>
             <div className="flex gap-3 flex-wrap">

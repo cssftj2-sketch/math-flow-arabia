@@ -18,6 +18,8 @@ import {
   BarChart3,
 } from "lucide-react";
 import { toast } from "sonner";
+import MathText from "@/components/MathText";
+
 
 const navItems = [
   { path: "/student", label: "لوحة التحكم", icon: LayoutDashboard },
@@ -361,16 +363,14 @@ const FlashcardReview = () => {
               <span className="text-xs text-muted-foreground mb-2 block">
                 {(card.quizzes as any)?.title ?? `بطاقة ${i + 1}`}
               </span>
-              <p className="font-bold text-lg">{card.question_text}</p>
+              <MathText text={card.question_text} className="font-bold text-lg" />
             </div>
             {flipped.has(i) && (
               <div className="mt-4 pt-4 border-t border-border">
-                <p
-                  className="text-sm text-primary font-medium font-mono"
-                  dir="ltr"
-                >
-                  {card.correct_answer}
-                </p>
+                <MathText
+                  text={card.correct_answer}
+                  className="text-sm text-primary font-medium"
+                />
               </div>
             )}
           </button>
@@ -514,7 +514,7 @@ const QuizPage = () => {
               style={{ width: `${progress}%` }}
             />
           </div>
-          <h3 className="text-lg font-bold mb-6">{q.question_text}</h3>
+          <MathText text={q.question_text} className="text-lg font-bold mb-6" />
           <div className="space-y-3">
             {options.map((opt, i) => (
               <button
@@ -526,7 +526,7 @@ const QuizPage = () => {
                     : "border-border hover:border-primary/30"
                 }`}
               >
-                {opt}
+                <MathText text={opt} />
               </button>
             ))}
           </div>
@@ -605,12 +605,10 @@ const ExercisePractice = () => {
           تمرين تطبيقي
         </span>
         <h3 className="text-lg font-bold mt-4 mb-2">حل المعادلة التالية:</h3>
-        <div
-          className="bg-muted rounded-xl p-4 text-center text-xl font-mono my-4"
-          dir="ltr"
-        >
-          3x² - 12x + 9 = 0
-        </div>
+        <MathText
+          text="$$3x^2 - 12x + 9 = 0$$"
+          className="bg-muted rounded-xl p-4 text-center text-xl my-4"
+        />
         <div className="space-y-3">
           <div>
             <label className="text-sm font-medium mb-1 block">
