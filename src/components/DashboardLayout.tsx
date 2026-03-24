@@ -19,6 +19,13 @@ interface DashboardLayoutProps {
 
 const DashboardLayout = ({ children, title, navItems, accentColor, roleName }: DashboardLayoutProps) => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { signOut, profile } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
+  };
 
   return (
     <div className="min-h-screen flex bg-background">
