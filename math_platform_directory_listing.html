@@ -1,0 +1,389 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-mono);font-size:13px}
+.tree{padding:12px 0 16px;line-height:1.6;color:var(--color-text-primary)}
+.folder,.file{display:flex;align-items:center;gap:6px;padding:1px 0;cursor:default;white-space:nowrap}
+.folder{cursor:pointer;user-select:none}
+.folder:hover .label{color:var(--color-text-primary)}
+.folder .label{color:var(--color-text-secondary);font-weight:500}
+.file .label{color:var(--color-text-tertiary)}
+.file .label.py{color:#3B6D11}.file .label.ts{color:#185FA5}.file .label.tsx{color:#185FA5}
+.file .label.json{color:#854F0B}.file .label.md{color:#712B13}.file .label.env{color:#5F5E5A}
+.file .label.css{color:#993556}.file .label.sql{color:#993C1D}.file .label.yml{color:#3C3489}
+.icon{font-size:13px;flex-shrink:0;width:16px;text-align:center}
+.children{margin-left:20px;border-left:1px solid var(--color-border-tertiary);padding-left:8px}
+.toggle{display:inline-block;width:10px;text-align:center;color:var(--color-text-tertiary);font-size:10px;flex-shrink:0}
+.badge{font-size:10px;padding:1px 5px;border-radius:3px;margin-left:4px;font-family:var(--font-sans);font-weight:500}
+.badge.admin{background:#F1EFE8;color:#5F5E5A}.badge.teacher{background:#EAF3DE;color:#3B6D11}
+.badge.student{background:#EEEDFE;color:#534AB7}.badge.shared{background:#E6F1FB;color:#185FA5}
+@media(prefers-color-scheme:dark){
+.badge.admin{background:#2C2C2A;color:#B4B2A9}.badge.teacher{background:#173404;color:#97C459}
+.badge.student{background:#26215C;color:#AFA9EC}.badge.shared{background:#042C53;color:#85B7EB}}
+.search{width:100%;padding:6px 10px;border:1px solid var(--color-border-secondary);border-radius:6px;
+  background:var(--color-background-secondary);color:var(--color-text-primary);font-family:var(--font-mono);
+  font-size:12px;margin-bottom:10px;outline:none}
+.search:focus{border-color:var(--color-border-primary)}
+.stats{font-size:11px;color:var(--color-text-tertiary);margin-bottom:8px;font-family:var(--font-sans)}
+.hidden{display:none}
+</style>
+
+<div style="padding:12px 0">
+<input class="search" id="search" placeholder="Filter files..." oninput="filterTree(this.value)">
+<div class="stats" id="stats"></div>
+<div class="tree" id="tree"></div>
+</div>
+
+<script>
+const data = {
+  name:"math-platform/", type:"folder", open:true, children:[
+    {name:".env.example", type:"file", ext:"env"},
+    {name:".gitignore", type:"file", ext:"md"},
+    {name:"docker-compose.yml", type:"file", ext:"yml"},
+    {name:"README.md", type:"file", ext:"md"},
+    {name:"package.json", type:"file", ext:"json"},
+
+    {name:"backend/", type:"folder", open:true, children:[
+      {name:"manage.py", type:"file", ext:"py"},
+      {name:"requirements.txt", type:"file", ext:"md"},
+      {name:"config/", type:"folder", children:[
+        {name:"settings.py", type:"file", ext:"py"},
+        {name:"urls.py", type:"file", ext:"py"},
+        {name:"wsgi.py", type:"file", ext:"py"},
+        {name:"celery.py", type:"file", ext:"py"},
+      ]},
+
+      {name:"apps/", type:"folder", open:true, children:[
+
+        {name:"auth/", type:"folder", badge:"shared", children:[
+          {name:"models.py", type:"file", ext:"py"},
+          {name:"serializers.py", type:"file", ext:"py"},
+          {name:"views.py", type:"file", ext:"py"},
+          {name:"urls.py", type:"file", ext:"py"},
+          {name:"permissions.py", type:"file", ext:"py"},
+          {name:"jwt_utils.py", type:"file", ext:"py"},
+          {name:"tests.py", type:"file", ext:"py"},
+        ]},
+
+        {name:"admin_panel/", type:"folder", badge:"admin", children:[
+          {name:"models.py", type:"file", ext:"py"},
+          {name:"views.py", type:"file", ext:"py"},
+          {name:"serializers.py", type:"file", ext:"py"},
+          {name:"urls.py", type:"file", ext:"py"},
+          {name:"user_management.py", type:"file", ext:"py"},
+          {name:"content_review.py", type:"file", ext:"py"},
+          {name:"billing.py", type:"file", ext:"py"},
+          {name:"platform_config.py", type:"file", ext:"py"},
+          {name:"platform_analytics.py", type:"file", ext:"py"},
+          {name:"tests.py", type:"file", ext:"py"},
+        ]},
+
+        {name:"teacher/", type:"folder", badge:"teacher", children:[
+          {name:"models.py", type:"file", ext:"py"},
+          {name:"views.py", type:"file", ext:"py"},
+          {name:"serializers.py", type:"file", ext:"py"},
+          {name:"urls.py", type:"file", ext:"py"},
+          {name:"curriculum_builder.py", type:"file", ext:"py"},
+          {name:"content_authoring.py", type:"file", ext:"py"},
+          {name:"lesson_builder.py", type:"file", ext:"py"},
+          {name:"exercise_builder.py", type:"file", ext:"py"},
+          {name:"qcm_builder.py", type:"file", ext:"py"},
+          {name:"flashcard_builder.py", type:"file", ext:"py"},
+          {name:"publish_workflow.py", type:"file", ext:"py"},
+          {name:"class_assignment.py", type:"file", ext:"py"},
+          {name:"class_monitor.py", type:"file", ext:"py"},
+          {name:"feedback.py", type:"file", ext:"py"},
+          {name:"tests.py", type:"file", ext:"py"},
+        ]},
+
+        {name:"student/", type:"folder", badge:"student", children:[
+          {name:"models.py", type:"file", ext:"py"},
+          {name:"views.py", type:"file", ext:"py"},
+          {name:"serializers.py", type:"file", ext:"py"},
+          {name:"urls.py", type:"file", ext:"py"},
+          {name:"registration.py", type:"file", ext:"py"},
+          {name:"diagnostic.py", type:"file", ext:"py"},
+          {name:"learning_path.py", type:"file", ext:"py"},
+          {name:"spaced_repetition.py", type:"file", ext:"py"},
+          {name:"assessment.py", type:"file", ext:"py"},
+          {name:"progress_tracker.py", type:"file", ext:"py"},
+          {name:"gamification.py", type:"file", ext:"py"},
+          {name:"dashboard.py", type:"file", ext:"py"},
+          {name:"tests.py", type:"file", ext:"py"},
+        ]},
+
+        {name:"parent/", type:"folder", badge:"shared", children:[
+          {name:"models.py", type:"file", ext:"py"},
+          {name:"views.py", type:"file", ext:"py"},
+          {name:"serializers.py", type:"file", ext:"py"},
+          {name:"urls.py", type:"file", ext:"py"},
+          {name:"dashboard.py", type:"file", ext:"py"},
+          {name:"alerts.py", type:"file", ext:"py"},
+          {name:"tests.py", type:"file", ext:"py"},
+        ]},
+
+        {name:"content/", type:"folder", badge:"shared", children:[
+          {name:"models.py", type:"file", ext:"py"},
+          {name:"serializers.py", type:"file", ext:"py"},
+          {name:"urls.py", type:"file", ext:"py"},
+          {name:"lesson_model.py", type:"file", ext:"py"},
+          {name:"exercise_model.py", type:"file", ext:"py"},
+          {name:"flashcard_model.py", type:"file", ext:"py"},
+          {name:"qcm_model.py", type:"file", ext:"py"},
+          {name:"video_model.py", type:"file", ext:"py"},
+          {name:"media_upload.py", type:"file", ext:"py"},
+          {name:"tests.py", type:"file", ext:"py"},
+        ]},
+
+        {name:"analytics/", type:"folder", badge:"shared", children:[
+          {name:"models.py", type:"file", ext:"py"},
+          {name:"views.py", type:"file", ext:"py"},
+          {name:"urls.py", type:"file", ext:"py"},
+          {name:"student_reports.py", type:"file", ext:"py"},
+          {name:"teacher_reports.py", type:"file", ext:"py"},
+          {name:"platform_reports.py", type:"file", ext:"py"},
+          {name:"export.py", type:"file", ext:"py"},
+          {name:"tests.py", type:"file", ext:"py"},
+        ]},
+
+        {name:"notifications/", type:"folder", badge:"shared", children:[
+          {name:"models.py", type:"file", ext:"py"},
+          {name:"email.py", type:"file", ext:"py"},
+          {name:"push.py", type:"file", ext:"py"},
+          {name:"tasks.py", type:"file", ext:"py"},
+        ]},
+
+        {name:"ai_engine/", type:"folder", badge:"shared", children:[
+          {name:"adaptive_path.py", type:"file", ext:"py"},
+          {name:"diagnostic_ai.py", type:"file", ext:"py"},
+          {name:"spaced_rep_algo.py", type:"file", ext:"py"},
+          {name:"recommendation.py", type:"file", ext:"py"},
+        ]},
+      ]},
+
+      {name:"db/", type:"folder", children:[
+        {name:"migrations/", type:"folder", children:[
+          {name:"0001_initial.sql", type:"file", ext:"sql"},
+          {name:"0002_content.sql", type:"file", ext:"sql"},
+          {name:"0003_analytics.sql", type:"file", ext:"sql"},
+        ]},
+        {name:"seeds/", type:"folder", children:[
+          {name:"demo_users.py", type:"file", ext:"py"},
+          {name:"sample_content.py", type:"file", ext:"py"},
+        ]},
+      ]},
+    ]},
+
+    {name:"frontend/", type:"folder", open:true, children:[
+      {name:"package.json", type:"file", ext:"json"},
+      {name:"tsconfig.json", type:"file", ext:"json"},
+      {name:"vite.config.ts", type:"file", ext:"ts"},
+      {name:"tailwind.config.ts", type:"file", ext:"ts"},
+      {name:"index.html", type:"file", ext:"md"},
+
+      {name:"src/", type:"folder", open:true, children:[
+        {name:"main.tsx", type:"file", ext:"tsx"},
+        {name:"App.tsx", type:"file", ext:"tsx"},
+        {name:"router.tsx", type:"file", ext:"tsx"},
+
+        {name:"shared/", type:"folder", badge:"shared", children:[
+          {name:"components/", type:"folder", children:[
+            {name:"Button.tsx", type:"file", ext:"tsx"},
+            {name:"Card.tsx", type:"file", ext:"tsx"},
+            {name:"Modal.tsx", type:"file", ext:"tsx"},
+            {name:"Table.tsx", type:"file", ext:"tsx"},
+            {name:"Badge.tsx", type:"file", ext:"tsx"},
+            {name:"Spinner.tsx", type:"file", ext:"tsx"},
+            {name:"ProgressBar.tsx", type:"file", ext:"tsx"},
+            {name:"Avatar.tsx", type:"file", ext:"tsx"},
+          ]},
+          {name:"hooks/", type:"folder", children:[
+            {name:"useAuth.ts", type:"file", ext:"ts"},
+            {name:"useApi.ts", type:"file", ext:"ts"},
+            {name:"useNotification.ts", type:"file", ext:"ts"},
+          ]},
+          {name:"utils/", type:"folder", children:[
+            {name:"formatters.ts", type:"file", ext:"ts"},
+            {name:"validators.ts", type:"file", ext:"ts"},
+            {name:"api.ts", type:"file", ext:"ts"},
+          ]},
+          {name:"stores/", type:"folder", children:[
+            {name:"authStore.ts", type:"file", ext:"ts"},
+            {name:"notificationStore.ts", type:"file", ext:"ts"},
+          ]},
+          {name:"types/", type:"folder", children:[
+            {name:"user.ts", type:"file", ext:"ts"},
+            {name:"content.ts", type:"file", ext:"ts"},
+            {name:"analytics.ts", type:"file", ext:"ts"},
+          ]},
+        ]},
+
+        {name:"admin/", type:"folder", badge:"admin", children:[
+          {name:"AdminApp.tsx", type:"file", ext:"tsx"},
+          {name:"pages/", type:"folder", children:[
+            {name:"Dashboard.tsx", type:"file", ext:"tsx"},
+            {name:"UserManagement.tsx", type:"file", ext:"tsx"},
+            {name:"ContentReview.tsx", type:"file", ext:"tsx"},
+            {name:"Billing.tsx", type:"file", ext:"tsx"},
+            {name:"PlatformConfig.tsx", type:"file", ext:"tsx"},
+            {name:"PlatformAnalytics.tsx", type:"file", ext:"tsx"},
+          ]},
+          {name:"components/", type:"folder", children:[
+            {name:"UserTable.tsx", type:"file", ext:"tsx"},
+            {name:"ContentCard.tsx", type:"file", ext:"tsx"},
+            {name:"GlobalStatsChart.tsx", type:"file", ext:"tsx"},
+            {name:"PlanEditor.tsx", type:"file", ext:"tsx"},
+          ]},
+        ]},
+
+        {name:"teacher/", type:"folder", badge:"teacher", children:[
+          {name:"TeacherApp.tsx", type:"file", ext:"tsx"},
+          {name:"pages/", type:"folder", children:[
+            {name:"Dashboard.tsx", type:"file", ext:"tsx"},
+            {name:"CurriculumBuilder.tsx", type:"file", ext:"tsx"},
+            {name:"LessonEditor.tsx", type:"file", ext:"tsx"},
+            {name:"ExerciseEditor.tsx", type:"file", ext:"tsx"},
+            {name:"QCMEditor.tsx", type:"file", ext:"tsx"},
+            {name:"FlashcardEditor.tsx", type:"file", ext:"tsx"},
+            {name:"ReviewPublish.tsx", type:"file", ext:"tsx"},
+            {name:"ClassAssignment.tsx", type:"file", ext:"tsx"},
+            {name:"ClassMonitor.tsx", type:"file", ext:"tsx"},
+            {name:"FeedbackPanel.tsx", type:"file", ext:"tsx"},
+          ]},
+          {name:"components/", type:"folder", children:[
+            {name:"TopicTree.tsx", type:"file", ext:"tsx"},
+            {name:"QuestionBuilder.tsx", type:"file", ext:"tsx"},
+            {name:"CardPreview.tsx", type:"file", ext:"tsx"},
+            {name:"StudentProgressRow.tsx", type:"file", ext:"tsx"},
+            {name:"ClassChart.tsx", type:"file", ext:"tsx"},
+          ]},
+        ]},
+
+        {name:"student/", type:"folder", badge:"student", children:[
+          {name:"StudentApp.tsx", type:"file", ext:"tsx"},
+          {name:"pages/", type:"folder", children:[
+            {name:"Dashboard.tsx", type:"file", ext:"tsx"},
+            {name:"Diagnostic.tsx", type:"file", ext:"tsx"},
+            {name:"LearningPath.tsx", type:"file", ext:"tsx"},
+            {name:"VideoLesson.tsx", type:"file", ext:"tsx"},
+            {name:"FlashcardReview.tsx", type:"file", ext:"tsx"},
+            {name:"QCMQuiz.tsx", type:"file", ext:"tsx"},
+            {name:"ExercisePractice.tsx", type:"file", ext:"tsx"},
+            {name:"Assessment.tsx", type:"file", ext:"tsx"},
+            {name:"Leaderboard.tsx", type:"file", ext:"tsx"},
+            {name:"Badges.tsx", type:"file", ext:"tsx"},
+          ]},
+          {name:"components/", type:"folder", children:[
+            {name:"FlashCard.tsx", type:"file", ext:"tsx"},
+            {name:"QCMOption.tsx", type:"file", ext:"tsx"},
+            {name:"StepSolver.tsx", type:"file", ext:"tsx"},
+            {name:"ProgressRing.tsx", type:"file", ext:"tsx"},
+            {name:"StreakBanner.tsx", type:"file", ext:"tsx"},
+            {name:"ScoreBoard.tsx", type:"file", ext:"tsx"},
+          ]},
+        ]},
+
+        {name:"parent/", type:"folder", badge:"shared", children:[
+          {name:"ParentApp.tsx", type:"file", ext:"tsx"},
+          {name:"pages/", type:"folder", children:[
+            {name:"Dashboard.tsx", type:"file", ext:"tsx"},
+            {name:"ActivityFeed.tsx", type:"file", ext:"tsx"},
+            {name:"WeakAreas.tsx", type:"file", ext:"tsx"},
+            {name:"Alerts.tsx", type:"file", ext:"tsx"},
+          ]},
+          {name:"components/", type:"folder", children:[
+            {name:"ChildSelector.tsx", type:"file", ext:"tsx"},
+            {name:"WeeklyReport.tsx", type:"file", ext:"tsx"},
+            {name:"TimeSpentChart.tsx", type:"file", ext:"tsx"},
+          ]},
+        ]},
+
+        {name:"styles/", type:"folder", children:[
+          {name:"globals.css", type:"file", ext:"css"},
+          {name:"themes.css", type:"file", ext:"css"},
+        ]},
+      ]},
+    ]},
+
+    {name:"tests/", type:"folder", children:[
+      {name:"e2e/", type:"folder", children:[
+        {name:"student_flow.spec.ts", type:"file", ext:"ts"},
+        {name:"teacher_flow.spec.ts", type:"file", ext:"ts"},
+        {name:"admin_flow.spec.ts", type:"file", ext:"ts"},
+        {name:"parent_flow.spec.ts", type:"file", ext:"ts"},
+      ]},
+      {name:"unit/", type:"folder", children:[
+        {name:"spaced_rep.test.py", type:"file", ext:"py"},
+        {name:"adaptive_path.test.py", type:"file", ext:"py"},
+        {name:"analytics.test.py", type:"file", ext:"py"},
+      ]},
+    ]},
+
+    {name:"docs/", type:"folder", children:[
+      {name:"architecture.md", type:"file", ext:"md"},
+      {name:"api_reference.md", type:"file", ext:"md"},
+      {name:"workflow_diagram.md", type:"file", ext:"md"},
+      {name:"roles_permissions.md", type:"file", ext:"md"},
+    ]},
+  ]
+};
+
+function ext(name){const m=name.match(/\.(\w+)$/);return m?m[1]:''}
+function fileIcon(e){return{py:'🐍',ts:'📘',tsx:'⚛',json:'{}',md:'📄',css:'🎨',sql:'🗄',yml:'⚙',env:'🔒'}[e]||'📄'}
+function badgeHtml(b){return b?`<span class="badge ${b}">${b}</span>`:'' }
+
+let totalFiles=0,totalFolders=0;
+
+function buildNode(node,depth=0){
+  if(node.type==='file'){
+    totalFiles++;
+    const e=ext(node.name);
+    return `<div class="file" data-name="${node.name.toLowerCase()}">
+      <span class="icon">${fileIcon(e)}</span>
+      <span class="label ${e}">${node.name}</span>
+    </div>`;
+  }
+  totalFolders++;
+  const childHtml=(node.children||[]).map(c=>buildNode(c,depth+1)).join('');
+  const open=node.open!==false;
+  return `<div class="folder-wrap" data-folder="${node.name.toLowerCase()}">
+    <div class="folder" onclick="toggleFolder(this)">
+      <span class="toggle">${open?'▾':'▸'}</span>
+      <span class="icon">📁</span>
+      <span class="label">${node.name}</span>
+      ${badgeHtml(node.badge)}
+    </div>
+    <div class="children" style="${open?'':'display:none'}">${childHtml}</div>
+  </div>`;
+}
+
+function toggleFolder(el){
+  const children=el.nextElementSibling;
+  const toggle=el.querySelector('.toggle');
+  const hidden=children.style.display==='none';
+  children.style.display=hidden?'':'none';
+  toggle.textContent=hidden?'▾':'▸';
+}
+
+function filterTree(q){
+  const v=q.toLowerCase().trim();
+  document.querySelectorAll('.file').forEach(el=>{
+    el.classList.toggle('hidden',v&&!el.dataset.name.includes(v));
+  });
+  document.querySelectorAll('.folder-wrap').forEach(wrap=>{
+    if(!v){wrap.classList.remove('hidden');return;}
+    const hasVisible=[...wrap.querySelectorAll('.file')].some(f=>!f.classList.contains('hidden'));
+    wrap.classList.toggle('hidden',!hasVisible);
+    const ch=wrap.querySelector('.children');
+    if(ch&&hasVisible)ch.style.display='';
+  });
+  const visible=document.querySelectorAll('.file:not(.hidden)').length;
+  document.getElementById('stats').textContent=v
+    ?`${visible} file${visible!==1?'s':''} matching "${q}"`
+    :`${totalFiles} files · ${totalFolders} folders`;
+}
+
+const tree=document.getElementById('tree');
+tree.innerHTML=buildNode(data);
+document.getElementById('stats').textContent=`${totalFiles} files · ${totalFolders} folders`;
+</script>

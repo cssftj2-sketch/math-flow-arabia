@@ -5,13 +5,13 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
 import ErrorBoundary from "@/components/ErrorBoundary";
-import ProtectedRoute from "@/components/ProtectedRoute";
+import ProtectedRoute from "@/shared/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
-import StudentDashboard from "./pages/StudentDashboard";
-import TeacherDashboard from "./pages/TeacherDashboard";
-import AdminDashboard from "./pages/AdminDashboard";
-import ParentDashboard from "./pages/ParentDashboard";
+import StudentApp from "./student/StudentApp";
+import TeacherApp from "./teacher/TeacherApp";
+import AdminApp from "./admin/AdminApp";
+import ParentApp from "./parent/ParentApp";
 import Unauthorized from "./pages/Unauthorized";
 import NotFound from "./pages/NotFound";
 
@@ -41,7 +41,7 @@ const App = () => (
                   element={
                     <ProtectedRoute allowedRoles={["student"]}>
                       <ErrorBoundary>
-                        <StudentDashboard />
+                        <StudentApp />
                       </ErrorBoundary>
                     </ProtectedRoute>
                   }
@@ -51,7 +51,7 @@ const App = () => (
                   element={
                     <ProtectedRoute allowedRoles={["teacher"]}>
                       <ErrorBoundary>
-                        <TeacherDashboard />
+                        <TeacherApp />
                       </ErrorBoundary>
                     </ProtectedRoute>
                   }
@@ -61,7 +61,7 @@ const App = () => (
                   element={
                     <ProtectedRoute allowedRoles={["admin"]}>
                       <ErrorBoundary>
-                        <AdminDashboard />
+                        <AdminApp />
                       </ErrorBoundary>
                     </ProtectedRoute>
                   }
@@ -71,7 +71,7 @@ const App = () => (
                   element={
                     <ProtectedRoute allowedRoles={["parent"]}>
                       <ErrorBoundary>
-                        <ParentDashboard />
+                        <ParentApp />
                       </ErrorBoundary>
                     </ProtectedRoute>
                   }
